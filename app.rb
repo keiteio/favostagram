@@ -56,14 +56,10 @@ get "/images" do
   end
   
   content_type :json
-  json = nil
-  if result[:max_id]
-    json = {:urls => urls, :max_id => result[:max_id]}.to_json
-  else
-    json = {:urls => urls}.to_json
-  end
-  
-  json
+  map = {urls: urls}
+  map[:max_id] = result[:max_id] if result[:max_id]
+  map[:error] = result[:error] if !result[:error].empty?
+  map.to_json
 end
 
 get "/download" do
@@ -75,7 +71,6 @@ get "/download" do
   json[:saved_images] = {}
   json[:existed_images] = {}
   json[:max_id] = result[:data][result[:data].size - 1].id - 1 if result[:data].size > 0
-
   result[:data].each do |e|
     e.media.each_index do |i|
       url = e.media[i].media_url
@@ -106,6 +101,7 @@ end
 helpers do
   def get_favorited_images(client, count, max_id)
     result = []
+    error = []
     while result.size < count
       data = nil
       begin
@@ -116,7 +112,8 @@ helpers do
         end
         p data
       rescue Twitter::Error::TooManyRequests => e
-        p e.backtrace
+        error = "TooManyRequests";
+        break;
       end
       
       break if !data || data.empty?
@@ -127,7 +124,8 @@ helpers do
       
       max_id = data[data.size-1].id - 1
     end
-    return {data: result, max_id: max_id}
+    
+    return {data: result, max_id: max_id, error: error.uniq.compact}
   end
   
   def get_count(params)
@@ -138,6 +136,3 @@ helpers do
     (params[:max_id] ? params[:max_id].to_i : nil)
   end
 end
-
-
-
