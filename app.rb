@@ -13,8 +13,8 @@ before do
   client = client || Twitter::REST::Client.new do |c|
     c.consumer_key = settings.twitter["auth"]["api-key"]
     c.consumer_secret = settings.twitter["auth"]["api-secret"]
-    #c.access_token = settings.twitter["auth"]["acess_token"]
-    #c.access_token_secret = settings.twitter["auth"]["acess_token_secret"]
+    c.access_token = settings.twitter["auth"]["acess_token"]
+    c.access_token_secret = settings.twitter["auth"]["acess_token_secret"]
   end
 end
 
@@ -43,19 +43,29 @@ get '/api/get_tweet.json' do
 end
 
 get "/images" do
-  count = params[:count] || 20
+  count = [[(params[:count] || 20), 100].min, 5].max
   max_id = params[:max_id]
   
   urls = []
   
   while urls.size < count
-    data = client.favorites(settings.twitter["user"]["screen-name"], {max_id: 444373267336290304-1} )
-    data.each do |entity|
-      urls << entity.media[0].media_url if entity.media[0]
+    data = nil
+    if !max_id
+      data = client.favorites(settings.twitter["user"]["screen-name"])
+    else
+      data = client.favorites(settings.twitter["user"]["screen-name"], {max_id: max_id})
     end
-    data[data.size-1]
+    p data
+    break if data.empty?
+    
+    data.each do |entity|
+      urls << "#{entity.media[0].media_url}:large" if entity.media[0]
+    end
+    max_id = data[data.size-1].id - 1
   end
   
+  content_type :json
+  {:urls => urls, :max_id => max_id}.to_json
 end
 
 
