@@ -139,8 +139,9 @@ helpers do
         end
         p data
       rescue Twitter::Error::TooManyRequests => e
-        error = "TooManyRequests";
-        break;
+        error << "TooManyRequests"
+        p e.backtrace.join["\n"]
+        break
       end
 
       break if !data || data.empty?
