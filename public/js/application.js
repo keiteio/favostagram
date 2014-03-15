@@ -14,11 +14,11 @@
 	 * Photo loader
 	 */
 	var self = $.PhotoLoader = {
-		url: '/api/get_tweet.json',
+		url: '/images',
 		page: 1,
-		count: 50,
+		count: 5,
 		enable: true,
-		remainHeight: 2000,
+		remainHeight: 500,
 
 		init: function(target) {
 			var rootNode, i = 0, words = 'Now Loading...', word, html = '';
@@ -60,7 +60,7 @@
 			           - documentElement.clientHeight
 			           - (window.pageYOffset || documentElement.scrollTop);
 
-			if (self.enable && self.page && remain <= self.remainHeight) {
+			if (self.enable && remain <= self.remainHeight) {
 				self.request();
 			}
 			self.evacuator();
@@ -77,12 +77,12 @@
 				dataType: 'json',
 				url: self.url,
 				data: {
-					page: self.page,
+					max_id: self.max_id,
 					count: self.count
 				},
 				success: function(json) {
-					self.success(json);
 					self.enable = true;
+					self.success(json);
 				},
 				error: function() {
 					self.error();
@@ -92,20 +92,24 @@
 
 		success: function(json) {
 			var df = document.createDocumentFragment(),
-			    i = 0, length = json.datas.length, data, listNode;
+			    i = 0, length = json.urls.length, data, listNode;
 			while (i < length) {
-				data = json.datas[i++];
+				url = json.urls[i++];
 				listNode = document.createElement('li');
 				listNode.innerHTML = [
-					'<a href="'+ data.media[0].media_url +'">',
-						'<img src="'+ data.media[0].media_url +'" data-src="'+ data.media[0].media_url +'" alt="">',
+					'<a href="'+ url +'">',
+						'<img src="'+ url +'" data-src="'+ url +'" alt="">',
 					'</a>'
 				].join('');
 				df.appendChild(listNode);
 			}
 			self.loadingNode.hide();
 			self.rootNode[0].appendChild(df);
-			self.page = json.next;
+			if (self.max_id == json.max_id) {
+				self.enable = true;
+			} else {
+				self.max_id = json.max_id;
+			}
 		},
 
 		error: function() {
