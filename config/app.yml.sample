@@ -1,0 +1,9 @@
+application_name: "Favstagram"
+twitter: 
+  auth: 
+    api-key: <YOUR API KEY>
+    api-secret: <YOUR API SECRET>
+    access-token: <YOUR ACCESS TOKEN>
+    access-token-secret: <YOUR ACCESS TOKEN SECRET>
+  user:
+    screen-name: <YOUR SCREEN NAME>
