@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8">
+    <title>Favostagram</title>
+    <link rel="stylesheet" href="/css/style.css" />
+    <script src="/js/jquery-1.5.1.js"></script>
+    <script src="/js/application.js"></script>
+  </head>
+  <body>
+    <div class="wrapper">
+      <div class="header">
+        <p class="logo">
+          <a href="#"></a>
+        </p>
+        <h1 class="name">Favostagram</h1>
+      </div>
+      <div class="content">
+        <% lines = yield.split("\n"); lines.each do |line| %>
+          <%= line %>
+        <% end %>
+      </div>
+    </div>
+  </body>
+</html>
