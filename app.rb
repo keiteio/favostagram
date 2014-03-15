@@ -4,6 +4,8 @@ require 'rubygems'
 require 'Twitter'
 require 'sinatra'
 require 'sinatra/config_file'
+require "open-uri"
+require "FileUtils"
 
 config_file 'config/app.yml'
 
@@ -20,7 +22,6 @@ end
 
 get "/" do
   data = client.favorites(settings.twitter["user"]["screen-name"])
-
   @html = ""
   data.each do |entity|
     @html += "<img src='#{entity.media[0].media_url}'/><br>" if entity.media[0]
@@ -35,37 +36,84 @@ get '/api/get_tweet.json' do
   offset = (page - 1) * limit
   max_page  = (150 / limit).ceil
   next_page = max_page > page ? page + 1 : nil
-
+  
   datas = client.favorites(settings.twitter["user"]["screen-name"])
-
+  
   content_type :json
   {:datas => datas, :next => next_page}.to_json
 end
 
 get "/images" do
-  count = [[(params[:count] || 20), 100].min, 5].max
-  max_id = params[:max_id]
+  count = get_count(params)
+  max_id = get_max_id(params)
+  result = get_favorited_images(client, count, max_id)
   
   urls = []
-  
-  while urls.size < count
-    data = nil
-    if !max_id
-      data = client.favorites(settings.twitter["user"]["screen-name"])
-    else
-      data = client.favorites(settings.twitter["user"]["screen-name"], {max_id: max_id})
+  result[:data].each do |e|
+    e.media.each do |m|
+      urls << "#{m.media_url}:large" if m
     end
-    p data
-    break if data.empty?
-    
-    data.each do |entity|
-      urls << "#{entity.media[0].media_url}:large" if entity.media[0]
-    end
-    max_id = data[data.size-1].id - 1
   end
   
   content_type :json
-  {:urls => urls, :max_id => max_id}.to_json
+  json = nil
+  if result[:max_id]
+    json = {:urls => urls, :max_id => result[:max_id]}.to_json
+  else
+    json = {:urls => urls}.to_json
+  end
+  
+  json
+end
+
+get "/download" do
+  count = get_count(params)
+  max_id = get_max_id(params)
+  result = get_favorited_images(client, count, max_id)
+  root_dir = File.join(__FILE__, settings["download_dir"])
+  
+  result[:data].each do |e|
+    e
+    FileUtils.mkdir_p(dirName) unless FileTest.exist?(dirName)
+  end
+  
+  
+end
+
+helpers do
+  def get_favorited_images(client, count, max_id)
+    result = []
+    while result.size < count
+      data = nil
+      begin
+        if !max_id
+          data = client.favorites(settings.twitter["user"]["screen-name"], {count: count})
+        else
+          data = client.favorites(settings.twitter["user"]["screen-name"], {count: count, max_id: max_id})
+        end
+        p data
+      rescue Twitter::Error::TooManyRequests => e
+        p e.backtrace
+      end
+      
+      break if !data || data.empty?
+      
+      data.each do |entity|
+        result << entity if entity.media[0]
+      end
+      
+      max_id = data[data.size-1].id - 1
+    end
+    return {data: result, max_id: max_id}
+  end
+  
+  def get_count(params)
+    [[(params[:count] || 20), 100].min, 1].max
+  end
+  
+  def get_max_id(params)
+    (params[:max_id] ? params[:max_id].to_i : nil)
+  end
 end
 
 
