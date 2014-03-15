@@ -38,7 +38,6 @@ get '/api/get_tweet.json' do
 
   datas = client.favorites(settings.twitter["user"]["screen-name"])
 
-  ActiveRecord::Base.include_root_in_json = false
   content_type :json
   {:datas => datas, :next => next_page}.to_json
 end
