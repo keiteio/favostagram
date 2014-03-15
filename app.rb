@@ -1,3 +1,5 @@
+#coding: utf-8
+
 require 'rubygems'
 require 'Twitter'
 require 'sinatra'
@@ -18,13 +20,27 @@ end
 
 get "/" do
   data = client.favorites(settings.twitter["user"]["screen-name"])
-  
-  html = ""
+
+  @html = ""
   data.each do |entity|
-    html += "<img src='#{entity.media[0].media_url}'/><br>" if entity.media[0]
+    @html += "<img src='#{entity.media[0].media_url}'/><br>" if entity.media[0]
   end
-  
-  html
+
+  erb :index
+end
+
+get '/api/get_tweet.json' do
+  limit  = [ (params[:count] || 30).to_i, 150 ].min
+  page   = (params[:page] || 1).to_i
+  offset = (page - 1) * limit
+  max_page  = (150 / limit).ceil
+  next_page = max_page > page ? page + 1 : nil
+
+  datas = client.favorites(settings.twitter["user"]["screen-name"])
+
+  ActiveRecord::Base.include_root_in_json = false
+  content_type :json
+  {:datas => datas, :next => next_page}.to_json
 end
 
 

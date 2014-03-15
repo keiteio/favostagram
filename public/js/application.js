@@ -97,8 +97,8 @@
 				data = json.datas[i++];
 				listNode = document.createElement('li');
 				listNode.innerHTML = [
-					'<a href="'+ data.url +'">',
-						'<img src="'+ data.url +'" data-src="'+ data.url +'" alt="">',
+					'<a href="'+ data.media[0].media_url +'">',
+						'<img src="'+ data.media[0].media_url +'" data-src="'+ data.media[0].media_url +'" alt="">',
 					'</a>'
 				].join('');
 				df.appendChild(listNode);
