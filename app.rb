@@ -70,14 +70,37 @@ get "/download" do
   count = get_count(params)
   max_id = get_max_id(params)
   result = get_favorited_images(client, count, max_id)
-  root_dir = File.join(__FILE__, settings["download_dir"])
   
+  json = {}
+  json[:saved_images] = {}
+  json[:existed_images] = {}
+  json[:max_id] = result[:data][result[:data].size - 1].id - 1 if result[:data].size > 0
+
   result[:data].each do |e|
-    e
-    FileUtils.mkdir_p(dirName) unless FileTest.exist?(dirName)
+    e.media.each_index do |i|
+      url = e.media[i].media_url
+      idx = sprintf("%02d",i)
+      filename = "#{e.id}_#{idx}" + File.extname(url)
+      p filename
+      dirname = File.join(File.dirname(__FILE__), settings.download_dir, e.user.id.to_s)
+      FileUtils.mkdir_p(dirname) unless FileTest.exist?(dirname)
+      
+      filepath = File.join(dirname, filename)
+      if FileTest.exist?(filepath)
+        json[:existed_images][e.id] = filename
+      else
+        open(File.join(dirname, filename), 'wb') do |output|
+          open(url) do |d|
+            output.write(d.read)
+          end
+          json[:saved_images][e.id] = filename
+        end
+      end
+    end
   end
   
-  
+  content_type :json
+  json.to_json
 end
 
 helpers do
@@ -99,7 +122,7 @@ helpers do
       break if !data || data.empty?
       
       data.each do |entity|
-        result << entity if entity.media[0]
+        result << entity if entity.media?
       end
       
       max_id = data[data.size-1].id - 1
@@ -108,7 +131,7 @@ helpers do
   end
   
   def get_count(params)
-    [[(params[:count] || 20), 100].min, 1].max
+    [[(params[:count].to_i || 20), 100].min, 1].max
   end
   
   def get_max_id(params)
