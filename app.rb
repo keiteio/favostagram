@@ -17,7 +17,7 @@ before do
 end
 
 get "/" do
-  data = client.favorites(settings.twitter["user"]["screen-name"])
+  data = client.favorites(settings.twitter["user"]["screen-name"], {max_id: 444373267336290304-1} )
   
   html = ""
   data.each do |entity|
@@ -27,6 +27,20 @@ get "/" do
   html
 end
 
-
+get "/images" do
+  count = params[:count] || 20
+  max_id = params[:max_id]
+  
+  urls = []
+  
+  while urls.size < count
+    data = client.favorites(settings.twitter["user"]["screen-name"], {max_id: 444373267336290304-1} )
+    data.each do |entity|
+      urls << entity.media[0].media_url if entity.media[0]
+    end
+    data[data.size-1]
+  end
+  
+end
 
 
