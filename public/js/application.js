@@ -105,8 +105,9 @@
 			}
 			self.loadingNode.hide();
 			self.rootNode[0].appendChild(df);
+			self.count = 5;
 			if (self.max_id == json.max_id) {
-				self.enable = true;
+				self.enable = false;
 			} else {
 				self.max_id = json.max_id;
 			}
