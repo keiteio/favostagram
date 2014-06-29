@@ -84,7 +84,7 @@ get "/images" do
 
   content_type :json
   map = {urls: urls}
-  map[:max_id] = result[:max_id] if result[:max_id]
+  map[:max_id] = result[:max_id].to_s if result[:max_id]
   map[:error] = result[:error] if !result[:error].empty?
   map.to_json
 end
