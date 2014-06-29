@@ -12,10 +12,10 @@ config_file 'config/app.yml'
 client = nil
 
 before do
-  client = client || Twitter::REST::Client.new do |c|
-    c.consumer_key = settings.twitter["auth"]["api-key"]
-    c.consumer_secret = settings.twitter["auth"]["api-secret"]
-    c.access_token = settings.twitter["auth"]["acess_token"]
+  client ||= Twitter::REST::Client.new do |c|
+    c.consumer_key        = settings.twitter["auth"]["api-key"]
+    c.consumer_secret     = settings.twitter["auth"]["api-secret"]
+    c.access_token        = settings.twitter["auth"]["acess_token"]
     c.access_token_secret = settings.twitter["auth"]["acess_token_secret"]
   end
 end
@@ -25,8 +25,9 @@ get "/" do
 end
 
 get "/images" do
-  count = get_count(params)
+  count  = get_count(params)
   max_id = get_max_id(params)
+
   result = get_favorited_images(client, count, max_id)
 
   urls = []
@@ -83,21 +84,21 @@ get "/images" do
   #        end
 
   content_type :json
-  map = {urls: urls}
+  map = { urls: urls }
   map[:max_id] = result[:max_id].to_s if result[:max_id]
-  map[:error] = result[:error] if !result[:error].empty?
+  map[:error]  = result[:error]       if !result[:error].empty?
   map.to_json
 end
 
 get "/download" do
-  count = get_count(params)
+  count  = get_count(params)
   max_id = get_max_id(params)
   result = get_favorited_images(client, count, max_id)
 
   json = {}
   json[:saved_images] = {}
   json[:existed_images] = {}
-  json[:max_id] = result[:data][result[:data].size - 1].id - 1 if result[:data].size > 0
+  json[:max_id] = result[:data].last.id - 1 if !result[:data].empty?
   result[:data].each do |e|
     e.media.each_index do |i|
       url = e.media[i].media_url
@@ -128,15 +129,15 @@ end
 helpers do
   def get_favorited_images(client, count, max_id)
     result = []
-    error = []
+    error  = []
+    default_options = { count: count }
+
     while result.size < count
-      data = nil
+      data = []
       begin
-        if !max_id
-          data = client.favorites(settings.twitter["user"]["screen-name"], {count: count})
-        else
-          data = client.favorites(settings.twitter["user"]["screen-name"], {count: count, max_id: max_id})
-        end
+        options = max_id ? default_options.merge({ max_id: max_id }) : default_options
+
+        data = client.favorites(settings.twitter["user"]["screen-name"], options)
         p data
       rescue Twitter::Error::TooManyRequests => e
         error << "TooManyRequests"
@@ -144,16 +145,18 @@ helpers do
         break
       end
 
-      break if !data || data.empty?
-
       data.each do |entity|
         result << entity if entity.media?
       end
 
-      max_id = data[data.size-1].id - 1
+      max_id = if data.empty?
+                 max_id - 1
+               else
+                 data.last.id - 1
+               end
     end
 
-    return {data: result, max_id: max_id, error: error.uniq.compact}
+    return { data: result, max_id: max_id, error: error.uniq.compact }
   end
 
   def get_count(params)
@@ -161,6 +164,6 @@ helpers do
   end
 
   def get_max_id(params)
-    (params[:max_id] ? params[:max_id].to_i : nil)
+    params[:max_id] ? params[:max_id].to_i : nil
   end
 end
